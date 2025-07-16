@@ -1,0 +1,21 @@
+item_id,name,price,category,description
+1,Margherita Pizza,12.99,Pizza,Classic tomato and mozzarella
+2,Caesar Salad,8.99,Salad,Romaine lettuce with caesar dressing
+3,Pasta Carbonara,14.99,Pasta,Creamy pasta with bacon and eggs
+4,Chicken Wings,10.99,Appetizer,Spicy buffalo wings
+5,Tiramisu,6.99,Dessert,Italian coffee-flavored dessert
+6,Pepperoni Pizza,13.99,Pizza,Traditional pizza with pepperoni
+7,Greek Salad,9.99,Salad,Fresh vegetables with feta cheese
+8,Spaghetti Bolognese,13.99,Pasta,Pasta with meat sauce
+9,Garlic Bread,5.99,Appetizer,Toasted bread with garlic butter
+10,Chocolate Cake,7.99,Dessert,Rich chocolate layer cake
+11,BBQ Chicken Pizza,15.99,Pizza,Chicken with BBQ sauce and onions
+12,Cobb Salad,10.99,Salad,Mixed greens with chicken and bacon
+13,Fettuccine Alfredo,12.99,Pasta,Pasta with creamy parmesan sauce
+14,Mozzarella Sticks,8.99,Appetizer,Breaded and fried cheese sticks
+15,Cheesecake,8.99,Dessert,New York style cheesecake
+16,Hawaiian Pizza,14.99,Pizza,Ham and pineapple pizza
+17,Spinach Salad,9.99,Salad,Fresh spinach with vinaigrette
+18,Lasagna,16.99,Pasta,Layered pasta with meat and cheese
+19,Calamari,11.99,Appetizer,Fried squid rings with dipping sauce
+20,Ice Cream Sundae,5.99,Dessert,Vanilla ice cream with toppings 
