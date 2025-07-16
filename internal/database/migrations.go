@@ -2,8 +2,10 @@ package database
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -52,11 +54,18 @@ func (i *CSVImporter) ImportAllData(ctx context.Context, baseURL string) error {
 
 // ImportUsers imports users from CSV
 func (i *CSVImporter) ImportUsers(ctx context.Context, baseURL string) error {
-	csvURL := fmt.Sprintf("%s/data/users.csv", strings.TrimSuffix(baseURL, "/"))
+	filePath := "data/users.csv"
+	records, err := readCsvFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	// The first record is the header
+	header := records[0]
+	dataRows := records[1:]
 
 	query := `
-		LOAD CSV WITH HEADERS FROM $csvURL AS row
-		WITH row WHERE row.user_id IS NOT NULL
+		UNWIND $rows as row
 		MERGE (u:User {
 			db_id: toInteger(row.user_id),
 			name: row.name,
@@ -66,29 +75,36 @@ func (i *CSVImporter) ImportUsers(ctx context.Context, baseURL string) error {
 		RETURN count(u) as imported_users
 	`
 
+	// Convert rows to a slice of maps
+	var userList []map[string]interface{}
+	for _, record := range dataRows {
+		user := make(map[string]interface{})
+		for j, value := range record {
+			user[header[j]] = strings.TrimSpace(value)
+		}
+		userList = append(userList, user)
+	}
+
 	params := map[string]interface{}{
-		"csvURL": csvURL,
+		"rows": userList,
 	}
 
-	results, err := i.client.ExecuteRead(ctx, query, params)
-	if err != nil {
-		return err
-	}
-
-	if len(results) > 0 {
-		log.Printf("Imported %v users", results[0]["imported_users"])
-	}
-
-	return nil
+	return i.client.ExecuteWrite(ctx, query, params)
 }
 
 // ImportItems imports menu items from CSV
 func (i *CSVImporter) ImportItems(ctx context.Context, baseURL string) error {
-	csvURL := fmt.Sprintf("%s/data/items.csv", strings.TrimSuffix(baseURL, "/"))
+	filePath := "data/items.csv"
+	records, err := readCsvFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	header := records[0]
+	dataRows := records[1:]
 
 	query := `
-		LOAD CSV WITH HEADERS FROM $csvURL AS row
-		WITH row WHERE row.item_id IS NOT NULL
+		UNWIND $rows as row
 		MERGE (i:Item {
 			db_id: toInteger(row.item_id),
 			name: row.name,
@@ -99,63 +115,74 @@ func (i *CSVImporter) ImportItems(ctx context.Context, baseURL string) error {
 		RETURN count(i) as imported_items
 	`
 
+	var itemList []map[string]interface{}
+	for _, record := range dataRows {
+		item := make(map[string]interface{})
+		for j, value := range record {
+			item[header[j]] = strings.TrimSpace(value)
+		}
+		itemList = append(itemList, item)
+	}
+
 	params := map[string]interface{}{
-		"csvURL": csvURL,
+		"rows": itemList,
 	}
 
-	results, err := i.client.ExecuteRead(ctx, query, params)
-	if err != nil {
-		return err
-	}
-
-	if len(results) > 0 {
-		log.Printf("Imported %v items", results[0]["imported_items"])
-	}
-
-	return nil
+	return i.client.ExecuteWrite(ctx, query, params)
 }
 
 // ImportOrders imports orders from CSV
 func (i *CSVImporter) ImportOrders(ctx context.Context, baseURL string) error {
-	csvURL := fmt.Sprintf("%s/data/orders.csv", strings.TrimSuffix(baseURL, "/"))
+	filePath := "data/orders.csv"
+	records, err := readCsvFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	header := records[0]
+	dataRows := records[1:]
 
 	query := `
-		LOAD CSV WITH HEADERS FROM $csvURL AS row
-		WITH row WHERE row.order_id IS NOT NULL
+		UNWIND $rows as row
+		MATCH (u:User {db_id: toInteger(row.user_id)})
 		MERGE (o:Order {
 			db_id: toInteger(row.order_id),
 			created_at: datetime(row.created_at),
 			total_amount: toFloat(row.total_amount)
 		})
-		WITH o, row
-		MATCH (u:User {db_id: toInteger(row.user_id)})
 		MERGE (u)-[:HAS_MADE]->(o)
 		RETURN count(o) as imported_orders
 	`
 
+	var orderList []map[string]interface{}
+	for _, record := range dataRows {
+		order := make(map[string]interface{})
+		for j, value := range record {
+			order[header[j]] = strings.TrimSpace(value)
+		}
+		orderList = append(orderList, order)
+	}
+
 	params := map[string]interface{}{
-		"csvURL": csvURL,
+		"rows": orderList,
 	}
 
-	results, err := i.client.ExecuteRead(ctx, query, params)
-	if err != nil {
-		return err
-	}
-
-	if len(results) > 0 {
-		log.Printf("Imported %v orders", results[0]["imported_orders"])
-	}
-
-	return nil
+	return i.client.ExecuteWrite(ctx, query, params)
 }
 
 // ImportOrderItems imports order-item relationships from CSV
 func (i *CSVImporter) ImportOrderItems(ctx context.Context, baseURL string) error {
-	csvURL := fmt.Sprintf("%s/data/order_items.csv", strings.TrimSuffix(baseURL, "/"))
+	filePath := "data/order_items.csv"
+	records, err := readCsvFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	header := records[0]
+	dataRows := records[1:]
 
 	query := `
-		LOAD CSV WITH HEADERS FROM $csvURL AS row
-		WITH row WHERE row.order_id IS NOT NULL AND row.item_id IS NOT NULL
+		UNWIND $rows as row
 		MATCH (o:Order {db_id: toInteger(row.order_id)})
 		MATCH (i:Item {db_id: toInteger(row.item_id)})
 		MERGE (o)-[:HAS_ITEM {
@@ -164,20 +191,20 @@ func (i *CSVImporter) ImportOrderItems(ctx context.Context, baseURL string) erro
 		RETURN count(*) as imported_order_items
 	`
 
+	var orderItemList []map[string]interface{}
+	for _, record := range dataRows {
+		orderItem := make(map[string]interface{})
+		for j, value := range record {
+			orderItem[header[j]] = strings.TrimSpace(value)
+		}
+		orderItemList = append(orderItemList, orderItem)
+	}
+
 	params := map[string]interface{}{
-		"csvURL": csvURL,
+		"rows": orderItemList,
 	}
 
-	results, err := i.client.ExecuteRead(ctx, query, params)
-	if err != nil {
-		return err
-	}
-
-	if len(results) > 0 {
-		log.Printf("Imported %v order-item relationships", results[0]["imported_order_items"])
-	}
-
-	return nil
+	return i.client.ExecuteWrite(ctx, query, params)
 }
 
 // BuildRelationships builds the derived relationships for recommendations
@@ -205,15 +232,13 @@ func (i *CSVImporter) buildHasOrderedRelationships(ctx context.Context) error {
 		RETURN count(ho) as created_relationships
 	`
 
-	results, err := i.client.ExecuteRead(ctx, query, nil)
+	// Changed from ExecuteRead to ExecuteWrite
+	err := i.client.ExecuteWrite(ctx, query, nil)
 	if err != nil {
 		return err
 	}
 
-	if len(results) > 0 {
-		log.Printf("Created %v HAS_ORDERED relationships", results[0]["created_relationships"])
-	}
-
+	log.Println("Built HAS_ORDERED relationships successfully")
 	return nil
 }
 
@@ -231,15 +256,13 @@ func (i *CSVImporter) buildOrderedAlongWithRelationships(ctx context.Context) er
 		RETURN count(oaw1) as created_relationships
 	`
 
-	results, err := i.client.ExecuteRead(ctx, query, nil)
+	// Changed from ExecuteRead to ExecuteWrite
+	err := i.client.ExecuteWrite(ctx, query, nil)
 	if err != nil {
 		return err
 	}
 
-	if len(results) > 0 {
-		log.Printf("Created %v ORDERED_ALONG_WITH relationships", results[0]["created_relationships"])
-	}
-
+	log.Println("Built ORDERED_ALONG_WITH relationships successfully")
 	return nil
 }
 
@@ -331,4 +354,21 @@ func (i *CSVImporter) GetImportStatus(ctx context.Context) (map[string]int, erro
 	}
 
 	return status, nil
+}
+
+// readCsvFile reads a CSV file and returns its records
+func readCsvFile(filePath string) ([][]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open CSV file %s: %w", filePath, err)
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CSV records from %s: %w", filePath, err)
+	}
+
+	return records, nil
 }

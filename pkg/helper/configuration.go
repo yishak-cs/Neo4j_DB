@@ -9,7 +9,7 @@ import (
 // LoadConfigFromEnv loads Neo4j configuration from environment variables
 func LoadConfigFromEnv() database.Config {
 	return database.Config{
-		URI:      getEnvOrDefault("NEO4J_URI", "neo4j+s://your-instance.databases.neo4j.io"),
+		URI:      getEnvOrDefault("NEO4J_URI", ""),
 		Username: getEnvOrDefault("NEO4J_USERNAME", "neo4j"),
 		Password: getEnvOrDefault("NEO4J_PASSWORD", ""),
 		Database: getEnvOrDefault("NEO4J_DATABASE", "neo4j"),
