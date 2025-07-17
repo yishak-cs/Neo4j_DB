@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -64,34 +65,15 @@ func main() {
 		c.Next()
 	})
 
+	// Serve static files (React build)
+	router.Static("/static", "./web/static")
+
 	// Setup routes
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "NeoRestro Recommendation Engine API",
-			"status":  "running",
-		})
+		c.File("./web/static/index.html")
 	})
 
-	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-		defer cancel()
-
-		if err := neo4jClient.Health(ctx); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"status":  "error",
-				"message": fmt.Sprintf("Database connection error: %v", err),
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "ok",
-			"message": "Service is healthy",
-		})
-	})
-
-	// Import data endpoint
+	// Import data endpoint (keep outside API group for simplicity)
 	router.POST("/import", func(c *gin.Context) {
 		baseURL := c.Query("baseURL")
 		if baseURL == "" {
@@ -129,6 +111,17 @@ func main() {
 
 	// Setup API routes
 	apiHandler.SetupRoutes(router)
+
+	// Handle React Router (SPA) - catch all other routes and serve index.html
+	router.NoRoute(func(c *gin.Context) {
+		// If the request is for API, return 404
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "API endpoint not found"})
+			return
+		}
+		// Otherwise serve the React app
+		c.File("./web/static/index.html")
+	})
 
 	// Get port from environment or use default
 	port := os.Getenv("APP_PORT")

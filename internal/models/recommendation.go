@@ -12,10 +12,11 @@ type User struct {
 
 // Item represents a menu item
 type Item struct {
-	DbID     int     `json:"db_id"`
-	Name     string  `json:"name"`
-	Price    float64 `json:"price"`
-	Category string  `json:"category"`
+	DbID        int     `json:"db_id"`
+	Name        string  `json:"name"`
+	Price       float64 `json:"price"`
+	Category    string  `json:"category"`
+	Description string  `json:"description,omitempty"`
 }
 
 // Order represents a customer order

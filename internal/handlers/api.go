@@ -26,6 +26,17 @@ func NewAPIHandler(recommendationService *services.RecommendationService) *APIHa
 func (h *APIHandler) SetupRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
+		// Health check
+		api.GET("/health", h.GetHealth)
+
+		// Users
+		api.GET("/users", h.GetAllUsers)
+
+		// Menu items
+		api.GET("/items", h.GetAllItems)
+		api.GET("/items/category/:category", h.GetItemsByCategory)
+
+		// Recommendations
 		api.GET("/recommendations/user-frequent/:userId", h.GetUserFrequentItems)
 		api.GET("/recommendations/user-co-orders/:userId/:itemId", h.GetUserCoOrderedItems)
 		api.GET("/recommendations/global-co-orders/:itemId", h.GetGlobalCoOrderedItems)
@@ -208,5 +219,65 @@ func (h *APIHandler) GetHybridRecommendations(c *gin.Context) {
 		"recommendations": recommendations,
 		"strategy":        "Hybrid",
 		"description":     "Personalized recommendations based on multiple factors",
+	})
+}
+
+// GetAllItems handles requests for all menu items
+func (h *APIHandler) GetAllItems(c *gin.Context) {
+	items, err := h.recommendationService.GetAllItems(c.Request.Context())
+	if err != nil {
+		log.Printf("Error getting all items: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get items"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"items": items,
+		"count": len(items),
+	})
+}
+
+// GetItemsByCategory handles requests for items in a specific category
+func (h *APIHandler) GetItemsByCategory(c *gin.Context) {
+	category := c.Param("category")
+	if category == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Category parameter is required"})
+		return
+	}
+
+	items, err := h.recommendationService.GetItemsByCategory(c.Request.Context(), category)
+	if err != nil {
+		log.Printf("Error getting items by category: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get items"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"category": category,
+		"items":    items,
+		"count":    len(items),
+	})
+}
+
+// GetAllUsers handles requests for all users
+func (h *APIHandler) GetAllUsers(c *gin.Context) {
+	users, err := h.recommendationService.GetAllUsers(c.Request.Context())
+	if err != nil {
+		log.Printf("Error getting all users: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get users"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"users": users,
+		"count": len(users),
+	})
+}
+
+// GetHealth handles health check requests
+func (h *APIHandler) GetHealth(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "ok",
+		"message": "Service is healthy",
 	})
 }

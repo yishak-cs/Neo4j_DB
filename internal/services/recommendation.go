@@ -393,3 +393,121 @@ func (s *RecommendationService) IsNewUser(ctx context.Context, userID int) (bool
 	orderCount := int(results[0]["order_count"].(int64))
 	return orderCount < 3, nil // Consider users with less than 3 orders as new
 }
+
+// GetAllItems retrieves all menu items from the database
+func (s *RecommendationService) GetAllItems(ctx context.Context) ([]models.Item, error) {
+	query := `
+		MATCH (i:Item)
+		RETURN i.db_id AS db_id, 
+			   i.name AS name, 
+			   i.price AS price, 
+			   i.category AS category,
+			   i.description AS description
+		ORDER BY i.category, i.name
+	`
+
+	results, err := s.client.ExecuteRead(ctx, query, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all items: %w", err)
+	}
+
+	var items []models.Item
+	for _, result := range results {
+		item := models.Item{
+			DbID:     int(result["db_id"].(int64)),
+			Name:     result["name"].(string),
+			Price:    result["price"].(float64),
+			Category: result["category"].(string),
+		}
+
+		// Handle optional description field
+		if desc, ok := result["description"]; ok && desc != nil {
+			if descStr, ok := desc.(string); ok {
+				item.Description = descStr
+			}
+		}
+
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
+// GetItemsByCategory retrieves menu items by category
+func (s *RecommendationService) GetItemsByCategory(ctx context.Context, category string) ([]models.Item, error) {
+	query := `
+		MATCH (i:Item {category: $category})
+		RETURN i.db_id AS db_id, 
+			   i.name AS name, 
+			   i.price AS price, 
+			   i.category AS category,
+			   i.description AS description
+		ORDER BY i.name
+	`
+
+	params := map[string]interface{}{
+		"category": category,
+	}
+
+	results, err := s.client.ExecuteRead(ctx, query, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get items by category: %w", err)
+	}
+
+	var items []models.Item
+	for _, result := range results {
+		item := models.Item{
+			DbID:     int(result["db_id"].(int64)),
+			Name:     result["name"].(string),
+			Price:    result["price"].(float64),
+			Category: result["category"].(string),
+		}
+
+		// Handle optional description field
+		if desc, ok := result["description"]; ok && desc != nil {
+			if descStr, ok := desc.(string); ok {
+				item.Description = descStr
+			}
+		}
+
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
+// GetAllUsers retrieves all users from the database
+func (s *RecommendationService) GetAllUsers(ctx context.Context) ([]models.User, error) {
+	query := `
+		MATCH (u:User)
+		RETURN u.db_id AS db_id, 
+			   u.name AS name, 
+			   u.email AS email,
+			   u.created_at AS created_at
+		ORDER BY u.name
+	`
+
+	results, err := s.client.ExecuteRead(ctx, query, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all users: %w", err)
+	}
+
+	var users []models.User
+	for _, result := range results {
+		user := models.User{
+			DbID:  int(result["db_id"].(int64)),
+			Name:  result["name"].(string),
+			Email: result["email"].(string),
+		}
+
+		// Handle created_at if present
+		if createdAt, ok := result["created_at"]; ok && createdAt != nil {
+			// Neo4j datetime handling would go here if needed
+			// For now, we'll skip the datetime conversion
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
