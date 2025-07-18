@@ -35,6 +35,7 @@ NeoRestro is a recommendation engine that uses graph database technology (Neo4j)
 ### Prerequisites
 - Go 1.16+
 - Neo4j AuraDB instance
+- [pnpm](https://pnpm.io/) (for frontend)
 
 ### Environment Variables
 Create a `.env` file with:
@@ -48,20 +49,40 @@ APP_PORT=8080
 
 ### Running the Application
 
+#### Frontend
+
+1. Open a terminal and navigate to the frontend directory:
+   ```
+   cd web/frontend
+   ```
+2. Install dependencies:
+   ```
+   pnpm install
+   ```
+3. Build the frontend:
+   ```
+   pnpm build
+   ```
+4. Start the development server:
+   ```
+   pnpm dev
+   ```
+5. Open your browser and go to [http://localhost:3000](http://localhost:3000)
+
+#### Backend (optional, if you want to run the Go server)
+
 1. Install dependencies:
    ```
    go mod download
    ```
-
 2. Run the server:
    ```
    go run cmd/server/main.go
    ```
 
-3. Import sample data:
-   ```
-   curl -X POST http://localhost:8080/import
-   ```
+#### Data Import (optional, if you want to import sample data)
+
+1. Import sample data (see your backend API or scripts for details).
 
 ## API Endpoints
 
@@ -87,16 +108,4 @@ APP_PORT=8080
 
 ## Example Usage
 
-```bash
-# Get hybrid recommendations for user 1 with item 6 in cart
-curl http://localhost:8080/api/recommendations/hybrid/1?itemInCart=6
-
-# Get user's most frequently ordered items
-curl http://localhost:8080/api/recommendations/user-frequent/2
-
-# Get items frequently ordered with item 1 by all users
-curl http://localhost:8080/api/recommendations/global-co-orders/1
-
-# Get trending items from the last 7 days
-curl http://localhost:8080/api/recommendations/trending
-``` 
+To use the frontend, follow the instructions above and visit [http://localhost:3000](http://localhost:3000). 
