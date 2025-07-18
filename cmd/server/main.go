@@ -65,49 +65,20 @@ func main() {
 		c.Next()
 	})
 
-	// Serve static files (React build)
-	router.Static("/static", "./web/static")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 
-	// Setup routes
-	router.GET("/", func(c *gin.Context) {
-		c.File("./web/static/index.html")
-	})
+	if err := importer.ImportAllData(ctx, "https://github.com/yishak-cs/Neo4j_DB/data"); err != nil {
+		log.Printf("Import failed: %v", err)
+		os.Exit(1)
+	}
 
-	// Import data endpoint (keep outside API group for simplicity)
-	router.POST("/import", func(c *gin.Context) {
-		baseURL := c.Query("baseURL")
-		if baseURL == "" {
-			// Use the server's own URL if not provided
-			baseURL = fmt.Sprintf("http://%s", c.Request.Host)
-		}
-
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Minute)
-		defer cancel()
-
-		if err := importer.ImportAllData(ctx, baseURL); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"status":  "error",
-				"message": fmt.Sprintf("Import failed: %v", err),
-			})
-			return
-		}
-
-		// Get import status
-		status, err := importer.GetImportStatus(ctx)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"status":  "error",
-				"message": fmt.Sprintf("Failed to get import status: %v", err),
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "success",
-			"message": "Data imported successfully",
-			"stats":   status,
-		})
-	})
+	// Get import status
+	_, err = importer.GetImportStatus(ctx)
+	if err != nil {
+		log.Printf("Failed to get import status: %v", err)
+		os.Exit(1)
+	}
 
 	// Setup API routes
 	apiHandler.SetupRoutes(router)
@@ -150,7 +121,7 @@ func main() {
 	log.Println("Shutting down server...")
 
 	// Gracefully shutdown with a timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)

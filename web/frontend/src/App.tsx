@@ -126,6 +126,19 @@ export default function RestaurantApp() {
           RecommendationAPI.getUserFrequentItems(selectedUser.db_id)
         )
         
+        if (!userFrequent || !userFrequent.recommendations){
+          console.log("No user frequent items, showing trending items")
+          const userTrending = await handleApiCall(() => 
+            RecommendationAPI.getTrendingItems()
+          )
+          if (userTrending && userTrending.recommendations) {
+            recommendationsToShow = userTrending.recommendations
+              .map(convertBackendRecommendation)
+              .filter(rec => !cart.some(cartItem => cartItem.db_id === rec.item.db_id))
+              .slice(0, 4)
+          }
+        }
+        
         if (userFrequent && userFrequent.recommendations) {
           recommendationsToShow = userFrequent.recommendations
             .map(convertBackendRecommendation)
