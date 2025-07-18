@@ -1,0 +1,22 @@
+[variables]
+GO_VERSION = "1.24.1"
+NODE_VERSION = "20.11.1"
+
+[phases.setup]
+nixPkgs = ['go_1_24_1', 'nodejs_20', 'nodePackages.pnpm']
+
+[phases.install]
+cmds = [
+  "cd web/frontend && pnpm install --frozen-lockfile",
+  "go mod download"
+]
+
+[phases.build]
+cmds = [
+  "cd web/frontend && pnpm run build",
+  "ls -la web/frontend/dist/ || echo 'Frontend build not found'",
+  "CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o server ./cmd/server"
+]
+
+[start]
+cmd = './server' 
