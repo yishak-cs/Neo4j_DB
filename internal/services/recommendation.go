@@ -159,13 +159,13 @@ func (s *RecommendationService) GetGlobalCoOrderedItems(ctx context.Context, ite
 func (s *RecommendationService) GetTimeBasedTrendingItems(ctx context.Context, days int) ([]models.Recommendation, error) {
 	query := `
 		MATCH (o:Order)-[:HAS_ITEM]->(i:Item)
-		WHERE o.created_at > datetime() - duration({days: $days})
+		WHERE date(o.created_at) > date() - duration({days: $days})
 		WITH i, count(o) as recent_orders
 		RETURN i.db_id AS item_id, 
-			   i.name AS name, 
-			   i.price AS price, 
-			   i.category AS category, 
-			   recent_orders
+        i.name AS name, 
+        i.price AS price, 
+        i.category AS category, 
+        recent_orders
 		ORDER BY recent_orders DESC
 	`
 
